@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta name="color-scheme" content="light only">
+</head>
+<body>
+    <div class="container">
+        <div class="navigation">
+            <ul>
+                <li>
+                    <a href="#">
+                        <span class="icon"><ion-icon name="car-sport-outline"></ion-icon></span>
+                        <span class="title">Summary details</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icon"><ion-icon name="calendar-outline"></ion-icon></span>
+                        <span class="title"><span id="DATE">unknown</span></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icon"><ion-icon name="time-outline"></ion-icon></span>
+                        <span class="title">Last update: <span id="TIME">00:00</span></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icon"><ion-icon name="enter-outline"></ion-icon></span>
+                        <span class="title">Free lot: <span id="FREE">0</span>/<span id="TOTAL">unknown</span></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icon"><ion-icon name="man-outline"></ion-icon></span>
+                        <span class="title">Status: <span id="CROWD">unknown</span></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- main -->
+        <div class="main">
+            <div class="topbar">
+                <div class="toggle">
+                    <ion-icon name="menu-outline"></ion-icon>
+                </div>
+                <div id="bigTitle">Parking Monitoring</div>
+            </div>
+            <!-- card -->
+            <div class="cardBox">
+                <div class="card">
+                    <div>
+                        <div class="numbers"><span id="WEATHERDESC">unknown</span></div>
+                        <div class="cardName">Weather</div>
+                    </div>
+                    <div class="iconBx">
+                        <ion-icon name="cloudy-outline"></ion-icon>
+                    </div>
+                </div>
+                <div class="card">
+                    <div>
+                        <div class="numbers"><span id="CELCIUS">unknown</span> °C</div>
+                        <div class="cardName">Temperature</div>
+                    </div>
+                    <div class="iconBx">
+                        <ion-icon name="thermometer-outline"></ion-icon>
+                    </div>
+                </div>
+                <div class="card">
+                    <div>
+                        <div class="numbers"><span id="HUMIDITY">unknown</span>%</div>
+                        <div class="cardName">Humidity</div>
+                    </div>
+                    <div class="iconBx">
+                        <ion-icon name="water-outline"></ion-icon>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add chart -->
+            <div class="graphBox">
+                <div class="box">
+                    <canvas id="status"></canvas>
+                </div>
+                <div class="box">
+                    <canvas id="chart3"></canvas>
+                </div>
+                <div class="box">
+                    <canvas id="chart"></canvas>
+                </div>
+                <div class="box">
+                    <canvas id="chart1"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="my_chart.js"></script>
+
+    <script>
+        //menu toggle
+        let toggle = document.querySelector('.toggle');
+        let navigation = document.querySelector('.navigation');
+        let main = document.querySelector('.main');
+
+        toggle.onclick = function(){
+            navigation.classList.toggle('active');
+            main.classList.toggle('active');
+        }
+
+        // add hovered class in selected list item
+        let list = document.querySelectorAll('.navigation li');
+        function activeLink(){
+            list.forEach((item) =>
+            item.classList.remove('hovered'));
+            this.classList.add('hovered');
+        }
+        list.forEach((item) =>
+        item.addEventListener('mouseover',activeLink));
+    </script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.2/firebase-analytics.js";
+        import { getDatabase, ref, set , onValue } from "https://www.gstatic.com/firebasejs/9.8.2/firebase-database.js";
+        const firebaseConfig = {
+          apiKey: "AIzaSyCvmAadlgyRfa-6r74neRJroomhT2t_fZg",
+          authDomain: "projectparkingspacemonitoring.firebaseapp.com",
+          databaseURL: "https://projectparkingspacemonitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "projectparkingspacemonitoring",
+          storageBucket: "projectparkingspacemonitoring.appspot.com",
+          messagingSenderId: "1069686898369",
+          appId: "1:1069686898369:web:4bc598eda27c73b3bd5e40"
+        };
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const database = getDatabase(app);
+
+        var x2,x1
+
+        const summ1 = ref(database, 'Data/' + 'Parking Status/');
+        onValue(summ1, (snapshot) => {
+            const data = snapshot.val();
+            x2 = data.ParkingOccupied;
+            x1 = data.ParkingFree;
+            const ctx = document.getElementById('status').getContext('2d');
+            const chartStatus = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Occupied','Vacant'],
+                    datasets: [{
+                        label: 'Lots availability',
+                        data: [x2,x1],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(3, 153, 148, 0.6)'
+                        ],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                } 
+            });
+        }); 
+
+        const summ2 = ref(database, 'Data/' + 'Parking Status/');
+        onValue(summ2, (snapshot) => {
+            const data = snapshot.val();
+            document.getElementById('DATE').innerHTML = data.currentDate;
+            document.getElementById('FREE').innerHTML = data.ParkingFree;
+            document.getElementById('TOTAL').innerHTML = data.TotalParking;
+            document.getElementById('TIME').innerHTML = data.TimeLastUpdate;
+            document.getElementById('CROWD').innerHTML = data.CrowdStatus;
+            document.getElementById('CELCIUS').innerHTML = data.Temperature;
+            document.getElementById('HUMIDITY').innerHTML = data.Humidity;
+            document.getElementById('WEATHERDESC').innerHTML = data.weatherDesc;
+        });
+
+        var m1,m2,m3,m4,m5,m6, dataRef
+        var mv1,mv2,mv3,mv4,mv5,mv6
+
+        onValue(summ1, (snapshot) => {
+            const data = snapshot.val();
+            dataRef = data.currentDay;
+            m1 = data.currentHour;
+            m2 = m1+10;
+            m3 = m2+10;
+            m4 = m3+10;
+            m5 = m4+10;
+            m6 = m5+10;
+            const summ3 = ref(database, 'Data/' + 'Chart Data 10th/' + dataRef +'/'+ m1 +'/');
+            onValue(summ3, (snapshot) => {
+                const data = snapshot.val();
+                mv1 = data.ParkingOccupied;
+            const summ4 = ref(database, 'Data/' + 'Chart Data 10th/' + dataRef +'/'+ m2 +'/');
+            onValue(summ4, (snapshot) => {
+                const data = snapshot.val();
+                mv2 = data.ParkingOccupied;
+            const summ5 = ref(database, 'Data/' + 'Chart Data 10th/' + dataRef +'/'+ m3 +'/');
+            onValue(summ5, (snapshot) => {
+                const data = snapshot.val();
+                mv3 = data.ParkingOccupied;
+            const summ6 = ref(database, 'Data/' + 'Chart Data 10th/' + dataRef +'/'+ m4 +'/');
+            onValue(summ6, (snapshot) => {
+                const data = snapshot.val();
+                mv4 = data.ParkingOccupied;
+            const summ7 = ref(database, 'Data/' + 'Chart Data 10th/' + dataRef +'/'+ m5 +'/');
+            onValue(summ7, (snapshot) => {
+                const data = snapshot.val();
+                mv5 = data.ParkingOccupied;
+            const summ8 = ref(database, 'Data/' + 'Chart Data 10th/' + dataRef +'/'+ m6 +'/');
+            onValue(summ8, (snapshot) => {
+                const data = snapshot.val();
+                mv6 = data.ParkingOccupied;
+                const ctx1 = document.getElementById('chart').getContext('2d');
+                const chartChart = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['00','10','20','30','40','50'],
+                        datasets: [{
+                            label: 'Occupied in current hour',
+                            data: [mv1,mv2,mv3,mv4,mv5,mv6],
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(3, 153, 148, 0.6)'
+                            ],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                    }
+            });});});});});});});
+        
+        var time0am,time3am,time6am,time9am,time0pm,time3pm,time6pm,time9pm, timeDataRef
+        var timev0am,timev3am,timev6am,timev9am,timev0pm,timev3pm,timev6pm,timev9pm
+
+        onValue(summ1, (snapshot) => {
+            const data = snapshot.val();
+            timeDataRef = data.currentDay;
+            time0am = data.currentDay+100; //0100
+            time3am = time0am+300; //0400
+            time6am = time3am+300; //0700
+            time9am = time6am+300; //1000
+            time0pm = time9am+300; //1300
+            time3pm = time0pm+300; //1600
+            time6pm = time3pm+300; //1900
+            time9pm = time6pm+300; //2200
+            const summ9 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time0am +'/');
+            onValue(summ9, (snapshot) => {
+                const data = snapshot.val();
+                timev0am = data.ParkingOccupied;
+            const summ10 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time3am +'/');
+            onValue(summ10, (snapshot) => {
+                const data = snapshot.val();
+                timev3am = data.ParkingOccupied;
+            const summ11 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time6am +'/');
+            onValue(summ11, (snapshot) => {
+                const data = snapshot.val();
+                timev6am = data.ParkingOccupied;
+            const summ12 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time9am +'/');
+            onValue(summ12, (snapshot) => {
+                const data = snapshot.val();
+                timev9am = data.ParkingOccupied;
+            const summ13 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time0pm +'/');
+            onValue(summ13, (snapshot) => {
+                const data = snapshot.val();
+                timev0pm = data.ParkingOccupied;
+            const summ14 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time3pm +'/');
+            onValue(summ14, (snapshot) => {
+                const data = snapshot.val();
+                timev3pm = data.ParkingOccupied;
+            const summ15 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time6pm +'/');
+            onValue(summ15, (snapshot) => {
+                const data = snapshot.val();
+                timev6pm = data.ParkingOccupied;
+            const summ16 = ref(database, 'Data/' + 'Chart Data Day/' + timeDataRef +'/'+ time9pm +'/');
+            onValue(summ16, (snapshot) => {
+                const data = snapshot.val();
+                timev9pm = data.ParkingOccupied;
+                const ctx1 = document.getElementById('chart1').getContext('2d');
+                const chartChart = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: ["0am","3am","6am","9am","0pm","3pm","6pm","9pm"],
+                        datasets: [{
+                            label: 'Occupied in current day',
+                            data: [timev0am,timev3am,timev6am,timev9am,timev0pm,timev3pm,timev6pm,timev9pm],
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(3, 153, 148, 0.6)'
+                            ],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                    }
+            });});});});});});});});});}); 
+        });
+
+        var time1min,time2min,time3min,time4min,time5min,time6min,time7min,time8min,time9min,time10min
+        var timev1min,timev2min,timev3min,timev4min,timev5min,timev6min,timev7min,timev8min,timev9min,timev10min
+
+        onValue(summ1, (snapshot) => {
+            const data = snapshot.val();
+            dataRef = data.currentDay;
+            time1min = data.current10Min;
+            time2min = time1min+1;
+            time3min = time2min+1;
+            time4min = time3min+1;
+            time5min = time4min+1;
+            time6min = time5min+1;
+            time7min = time6min+1;
+            time8min = time7min+1;
+            time9min = time8min+1;
+            time10min = time9min+1;
+            console.log(time1min);
+            const summ17 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time1min +'/');
+            onValue(summ17, (snapshot) => {
+                const data = snapshot.val();
+                timev1min = data.ParkingOccupied;
+            const summ18 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time2min +'/');
+            onValue(summ18, (snapshot) => {
+                const data = snapshot.val();
+                timev2min = data.ParkingOccupied;
+            const summ19 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time3min +'/');
+            onValue(summ19, (snapshot) => {
+                const data = snapshot.val();
+                timev3min = data.ParkingOccupied;
+            const summ20 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time4min +'/');
+            onValue(summ20, (snapshot) => {
+                const data = snapshot.val();
+                timev4min = data.ParkingOccupied;
+            const summ21 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time5min +'/');
+            onValue(summ21, (snapshot) => {
+                const data = snapshot.val();
+                timev5min = data.ParkingOccupied;
+            const summ22 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time6min +'/');
+            onValue(summ22, (snapshot) => {
+                const data = snapshot.val();
+                timev6min = data.ParkingOccupied;
+            const summ23 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time7min +'/');
+            onValue(summ23, (snapshot) => {
+                const data = snapshot.val();
+                timev7min = data.ParkingOccupied;
+            const summ24 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time8min +'/');
+            onValue(summ24, (snapshot) => {
+                const data = snapshot.val();
+                timev8min = data.ParkingOccupied;
+            const summ25 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time9min +'/');
+            onValue(summ25, (snapshot) => {
+                const data = snapshot.val();
+                timev9min = data.ParkingOccupied;
+            const summ26 = ref(database, 'Data/' + 'Chart Data/' + dataRef +'/'+ time10min +'/');
+            onValue(summ26, (snapshot) => {
+                const data = snapshot.val();
+                timev10min = data.ParkingOccupied;
+                const ctx1 = document.getElementById('chart3').getContext('2d');
+                const chartChart = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0','1','2','3','4','5','6','7','8','9'],
+                        datasets: [{
+                            label: 'Occupied in current minute',
+                            data: [timev1min,timev2min,timev3min,timev4min,timev5min,timev6min,timev7min,timev8min,timev9min,timev10min],
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(3, 153, 148, 0.6)'
+                            ],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                    }
+            });});});});});});});});});});});
+        });
+    </script>
+</body>
+</html>
